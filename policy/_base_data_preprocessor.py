@@ -9,7 +9,7 @@ from tqdm import tqdm
 from pathlib import Path
 
 PROJECT_ROOT_PATH = (Path(__file__).parent / '..').resolve()
-DATA_ROOT_PATH = PROJECT_ROOT_PATH / 'data'
+DATA_ROOT_PATH = Path(os.environ.get('UNIVTAC_DATA_ROOT', PROJECT_ROOT_PATH / 'data')).expanduser()
 sys.path.append(str(PROJECT_ROOT_PATH.absolute()))
 
 from envs.utils.data import HDF5Handler
@@ -19,6 +19,10 @@ class BaseDataPreprocessor:
         self.task_name = task_name
         self.collect_config_name = collect_config_name
         self.raw_root_path = DATA_ROOT_PATH / task_name / collect_config_name
+        if not self.raw_root_path.exists() and collect_config_name == 'demo':
+            self.raw_root_path = DATA_ROOT_PATH / 'isaac45' / task_name / 'hdf5'
+        if not self.raw_root_path.exists():
+            raise FileNotFoundError(f"Raw demonstration directory not found: {self.raw_root_path}")
         self.raw_hdf5_path = sorted(
             self.raw_root_path.rglob('*.hdf5'), key=lambda x: int(x.stem))
 
@@ -153,9 +157,10 @@ class BaseDataPreprocessor:
     
     def get_metadata(self):
         assert self._data is not None, "Data not loaded. Please call load_data() before get_metadata()."
-        max_episode_len = np.max(self._data['episode_ends'][1:] - self._data['episode_ends'][:-1])
+        max_episode_len = np.diff([0, *self._data['episode_ends']]).max()
         metadata = {
             'num_episodes': len(self.selected_raw_hdf5_paths),
+            'state_dim': int(self._data['embodiment/joint_state'].shape[-1]),
             'episode_len': int(max_episode_len),
             'dataset_dir': str(self.save_root_path),
             'camera_names': [f'cam_{cam}' for cam in self.visual_cameras] \

@@ -7,6 +7,7 @@ from torch import nn
 from torch.autograd import Variable
 from .backbone import build_backbone, build_tactile_backbone
 from .transformer import build_transformer, TransformerEncoder, TransformerEncoderLayer
+from .hypernet import JointConditionHyperNet
 
 import numpy as np
 
@@ -36,7 +37,8 @@ def get_sinusoid_encoding_table(n_position, d_hid):
 class DETRVAE(nn.Module):
     """ This is the DETR module that performs object detection """
 
-    def __init__(self, backbones, transformer, encoder, state_dim, num_queries, camera_names, tactile_names):
+    def __init__(self, backbones, transformer, encoder, state_dim, num_queries, camera_names, tactile_names,
+                 hypernet_config=None):
         """ Initializes the model.
         Parameters:
             backbones: torch module of the backbone to be used. See backbone.py
@@ -80,6 +82,15 @@ class DETRVAE(nn.Module):
         # decoder extra parameters
         self.latent_out_proj = nn.Linear(self.latent_dim, hidden_dim)  # project latent sample to embedding
         self.additional_pos_embed = nn.Embedding(2, hidden_dim)  # learned position embedding for proprio and latent
+        self.perception_adapter = None
+        if hypernet_config is not None:
+            if backbones is None:
+                raise ValueError("HyperNet requires image backbones")
+            self.perception_adapter = JointConditionHyperNet(
+                feature_dim=hidden_dim, state_dim=state_dim,
+                num_visual_streams=len(camera_names), num_tactile_streams=len(tactile_names),
+                **hypernet_config,
+            )
 
     def forward(self, qpos, cam_image, tac_image, env_state, actions=None, is_pad=None):
         """
@@ -139,6 +150,9 @@ class DETRVAE(nn.Module):
                 all_cam_features.append(self.tactile_input_proj(features).flatten(2)) # [N, D, HW]
                 all_cam_pos.append(pos.flatten(2)) # [N, D, HW]
             
+            if self.perception_adapter is not None:
+                all_cam_features = self.perception_adapter(all_cam_features, qpos)
+
             # proprioception features
             proprio_input = self.input_proj_robot_state(qpos)
             # fold camera dimension into width dimension
@@ -255,6 +269,18 @@ def build(args):
 
     encoder = build_encoder(args)
 
+    hypernet_config = None
+    if getattr(args, 'use_hypernet', False):
+        if getattr(args, 'use_fusion_hypernet', False):
+            raise ValueError("The selected HyperResNet task profile does not use a fusion HyperNet")
+        hypernet_config = {
+            'hidden_dim': getattr(args, 'hypernet_hidden_dim', 256),
+            'alpha_init': getattr(args, 'hypernet_alpha_init', 0.01),
+            'alpha_max': getattr(args, 'hypernet_alpha_max', 0.1),
+            'use_fusion': getattr(args, 'use_fusion', True),
+            'num_heads': getattr(args, 'hypernet_num_heads', 4),
+        }
+
     model = DETRVAE(
         backbones,
         transformer,
@@ -263,6 +289,7 @@ def build(args):
         num_queries=args.chunk_size,  #gyh
         camera_names=args.camera_names,
         tactile_names=args.tactile_names,
+        hypernet_config=hypernet_config,
     )
 
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)

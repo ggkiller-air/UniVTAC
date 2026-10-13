@@ -13,6 +13,7 @@ import torch
 from .act_policy import ACT
 # from act_policy import ACT
 from torchvision import transforms
+from .protocol import ACT_PROTOCOL, ACT_STATE_DIM, task_observation_spec
 
 class Policy(BasePolicy):
 # class Policy:
@@ -24,14 +25,32 @@ class Policy(BasePolicy):
         ckpt_dir = Path(__file__).parent / "act_ckpt" / f"act-{args['task_name']}" / f"{args['task_config']}-{self.ep_num}" / self.train_config_name
  
         self.task_name = args['task_name']
+        run_dir = args.get('ckpt_dir') or os.environ.get('ACT_RUN_DIR')
         with open(Path(__file__).parent.parent / 'task_settings.json', 'r') as f:
             task_settings = json.load(f)
         assert self.task_name in task_settings, f"Task '{self.task_name}' not found in task_settings.json"
         self.camera_type = task_settings[self.task_name].get('camera_type', 'head')
         print(f"Using camera type '{self.camera_type}' for task '{self.task_name}'")
 
-        with open(Path(__file__).parent / f'{self.train_config_name}.yml', 'r') as f:
+        config_path = Path(run_dir) / 'resolved_config.yml' if run_dir else Path(__file__).parent / f'{self.train_config_name}.yml'
+        if run_dir:
+            ckpt_dir = Path(run_dir)
+            for required_file in ('policy_last.ckpt', 'dataset_stats.pkl', 'resolved_config.yml'):
+                if not (ckpt_dir / required_file).is_file():
+                    raise FileNotFoundError(ckpt_dir / required_file)
+        with open(config_path, 'r') as f:
             train_config = yaml.load(f, Loader=yaml.FullLoader)
+        self.camera_names = train_config['camera_names']
+        self.state_dim = train_config['state_dim']
+        if train_config.get('act_protocol') == ACT_PROTOCOL:
+            spec = task_observation_spec(self.task_name)
+            if self.camera_names != spec['camera_names'] or self.state_dim != ACT_STATE_DIM:
+                raise ValueError("Deployment inputs do not match the author ACT task protocol")
+        if run_dir:
+            train_config['tactile_ckpt'] = None
+            train_config['require_tactile_checkpoint'] = False
+        if args.get('device'):
+            train_config['device'] = args['device']
         
         train_config.update({
             'task_name': f"sim-{args['task_name']}-{args['task_config']}-{self.ep_num}",
@@ -84,11 +103,14 @@ class Policy(BasePolicy):
         else:
             cam_high = camera_transform(observation["observation"][self.camera_type]["rgb"])
 
-        left_tac = tactile_transform(observation["tactile"]["left_tactile"]["rgb_marker"])
-        right_tac = tactile_transform(observation["tactile"]["right_tactile"]["rgb_marker"])
+        tactile_streams = observation['tactile']
+        left_key = 'left_tactile' if 'left_tactile' in tactile_streams else 'left_gsmini'
+        right_key = 'right_tactile' if 'right_tactile' in tactile_streams else 'right_gsmini'
+        left_tac = tactile_transform(tactile_streams[left_key]['rgb_marker'])
+        right_tac = tactile_transform(tactile_streams[right_key]['rgb_marker'])
         
         # Extract joint positions (8D: 7 arm + 1 gripper)
-        qpos = observation["embodiment"]["joint"][:8]
+        qpos = observation["embodiment"]["joint"][:self.state_dim]
 
         ret = {
             "cam_high": cam_high,
@@ -98,6 +120,8 @@ class Policy(BasePolicy):
         }
         if self.camera_type == 'all':
             ret["cam_wrist"] = cam_wrist
+        if 'cam_head' in self.camera_names:
+            ret['cam_head'] = ret['cam_high']
         return ret
 
     def eval(self, task, observation):

@@ -1,0 +1,34 @@
+state_dim: 9
+kl_weight: 10.0
+chunk_size: 50
+hidden_dim: 512
+dim_feedforward: 3200
+temporal_agg: true
+device: cuda:0
+ckpt_dir: null
+policy_class: ACT
+num_steps: 4000
+batch_size: 64
+save_freq: 1000
+position_embedding: sine
+lr_vision_backbone: 0.00001
+weight_decay: 0.0001
+lr: 0.00001
+masks: false
+dilation: false
+backbone: resnet18
+nheads: 8
+enc_layers: 4
+dec_layers: 7
+pre_norm: false
+dropout: 0.1
+camera_names:
+  - cam_head
+tactile_names:
+  - tac_left
+  - tac_right
+lr_tactile_backbone: 0.00001
+tactile_masks: false
+tactile_backbone: resnet18
+tactile_ckpt: null
+tactile_dilation: false

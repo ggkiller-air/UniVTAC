@@ -1,5 +1,8 @@
 # Installation Guide
 
+For offline imitation-policy training only, use `bash scripts/install.sh --policy-only`.
+This path does not need simulator packages or `sudo`; see [Cluster Training](./ClusterTraining.md).
+
 ## Installation all-in-one Script
 
 Clone the repository and run the installation script `scripts/install.sh` to set up the environment and install dependencies all at once. The script will create a conda environment named `UniVTAC` and install Isaac Sim, Isaac Lab, TacEx, cuRobo, and other necessary packages.

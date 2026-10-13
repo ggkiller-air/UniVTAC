@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+if [[ "${1:-}" == "--policy-only" ]]; then
+    exec bash "$(dirname "${BASH_SOURCE[0]}")/install_policy.sh"
+fi
+
 CONDA_ENV_NAME="UniVTAC"
 load_env() {
     if [ -z "$CONDA_PREFIX" ]; then

@@ -31,6 +31,13 @@ bash scripts/install.sh
 
 See the [Installation Guide](./docs/Installation.md) for detailed setup instructions, including installing the environment, installing TacEx from the modified local source and setting up cuRobo for motion planning.
 
+For offline policy training on a cluster without compatible Isaac Sim rendering hardware,
+use `bash scripts/install.sh --policy-only` and `source scripts/env.sh`. See
+[Cluster Training](./docs/ClusterTraining.md) for dataset preparation, GPU allocation,
+ACT training, validation, and the distinction between offline training and simulation evaluation.
+The [ACT HyperNet integration](./docs/ACTHyperNet.md) preserves author ACT settings,
+pretrained weights, and task-specific camera views while adding joint-condition modulation.
+
 ## Task Gallery
 
 UniVTAC currently includes the following manipulation tasks, all featuring tactile sensing:

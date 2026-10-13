@@ -3,26 +3,27 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from _base_data_preprocessor import *
+from protocol import ACT_PROTOCOL, ACT_STATE_DIM, task_observation_spec
+
+
+class ACTDataPreprocessor(BaseDataPreprocessor):
+    def joint_transform(self, joints):
+        if joints.ndim != 2 or joints.shape[-1] not in (ACT_STATE_DIM, ACT_STATE_DIM + 1):
+            raise ValueError(f"Expected eight or nine recorded Franka joints, got {joints.shape}")
+        return joints[:, :ACT_STATE_DIM]
 
 def main(task_name, task_config, expert_data_num):
-    output_path = f"./data/sim-{task_name}/{task_config}-{expert_data_num}"
+    output_root = Path(os.environ.get("UNIVTAC_PROCESSED_ROOT", "./data"))
+    output_path = str(output_root / f"sim-{task_name}" / f"{task_config}-{expert_data_num}")
     
-    task_settings_path = Path(__file__).parent / './task_settings.json'
-    if task_settings_path.exists():
-        with open(task_settings_path, 'r') as f:
-            task_settings = json.load(f)
-    else:
-        task_settings = {}
-    
-    camera_type = task_settings.get(task_name, {}).get('camera_type', 'head')
-    if camera_type == 'all':
-        visual_cameras = ['head', 'wrist']
-    else:
-        visual_cameras = [camera_type]
+    spec = task_observation_spec(task_name)
+    visual_cameras = spec['visual_cameras']
     tactile_cameras = ['left', 'right']
-    downsample_factor = task_settings.get(task_name, {}).get('downsample_factor', 1)
+    downsample_factor = spec['downsample_factor']
  
-    processor = BaseDataPreprocessor(task_name, task_config)
+    processor = ACTDataPreprocessor(task_name, task_config)
+    for camera, save_key in zip(visual_cameras, spec['camera_names']):
+        processor.camera_key_map[f'visual/{camera}']['save_key'] = save_key
     metadata = processor.run(
         save_root_path=output_path,
         visual_cameras=visual_cameras,
@@ -31,8 +32,13 @@ def main(task_name, task_config, expert_data_num):
         episode_num=expert_data_num,
         random_select=False,
     )
+    metadata['camera_names'] = spec['camera_names'] + spec['tactile_names']
+    metadata['act_protocol'] = ACT_PROTOCOL
+    with open(Path(output_path) / 'metadata.json', 'w') as metadata_file:
+        json.dump(metadata, metadata_file, indent=4)
 
-    SIM_TASK_CONFIGS_PATH = "./SIM_TASK_CONFIGS.json"
+    SIM_TASK_CONFIGS_PATH = os.environ.get("UNIVTAC_TASK_CONFIGS", "./SIM_TASK_CONFIGS.json")
+    Path(SIM_TASK_CONFIGS_PATH).parent.mkdir(parents=True, exist_ok=True)
     try:
         with open(SIM_TASK_CONFIGS_PATH, "r") as f:
             SIM_TASK_CONFIGS = json.load(f)
@@ -42,8 +48,10 @@ def main(task_name, task_config, expert_data_num):
     SIM_TASK_CONFIGS[f"sim-{task_name}-{task_config}-{expert_data_num}"] = {
         "dataset_dir": metadata['dataset_dir'],
         "num_episodes": metadata['num_episodes'],
+        "state_dim": metadata['state_dim'],
         "episode_len": metadata['episode_len'],
         "camera_names": metadata['camera_names'],
+        "act_protocol": ACT_PROTOCOL,
     }
 
     with open(SIM_TASK_CONFIGS_PATH, "w") as f:

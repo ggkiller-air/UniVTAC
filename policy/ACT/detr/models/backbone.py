@@ -147,8 +147,10 @@ class TactileBackbone(nn.Module):
         backbone = Tactile(backbone='resnet18', supervise=[
             'marker', 'rgb', 'marked_rgb', 'pose', 'depth'
         ], latent_dims=self.num_channels, norm_layer=FrozenBatchNorm2d)
-        if ckpt and Path(ckpt).exists():
-            backbone.load_state_dict(torch.load(ckpt, weights_only=True))
+        if ckpt:
+            if not Path(ckpt).is_file():
+                raise FileNotFoundError(f"Tactile encoder checkpoint not found: {ckpt}")
+            backbone.load_state_dict(torch.load(ckpt, map_location='cpu', weights_only=True))
 
         self.tactile_type = tactile_type
         if self.tactile_type == 'feat':
@@ -172,6 +174,8 @@ class TactileBackbone(nn.Module):
         return feat, pos
 
 def build_tactile_backbone(args):
+    if getattr(args, 'require_tactile_checkpoint', False) and not args.tactile_ckpt:
+        raise ValueError("Author ACT training requires the pretrained tactile encoder")
     train_backbone = args.lr_tactile_backbone > 0
     return_interm_layers = args.tactile_masks
     tactile_type = args.tactile_type if hasattr(args, 'tactile_type') else 'feat'

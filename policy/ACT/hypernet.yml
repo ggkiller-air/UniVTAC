@@ -1,0 +1,7 @@
+use_hypernet: true
+use_fusion: true
+use_fusion_hypernet: false
+hypernet_hidden_dim: 256
+hypernet_alpha_init: 0.01
+hypernet_alpha_max: 0.1
+hypernet_num_heads: 4
