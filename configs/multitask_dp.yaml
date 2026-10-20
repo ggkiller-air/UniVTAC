@@ -1,0 +1,30 @@
+name: full_sensor_multitask_dp_batch64_ep600
+cache_dir: /data/wangzihao/datasets/univtac/cache/full_sensor_joint_next_bgr_u8_v1
+seed: 42
+batch_size: 64
+num_epochs: 600
+num_workers: 8
+preload_ram: true
+horizon: 16
+n_obs_steps: 2
+n_action_steps: 8
+token_dim: 256
+down_dims: [512, 1024, 2048]
+diffusion_step_embed_dim: 128
+num_diffusion_steps: 100
+num_inference_steps: 100
+full_input_probability: 0.8
+mask_weights: [1, 1, 1, 1, 1, 1, 1, 1]
+learning_rate: 0.00008
+betas: [0.95, 0.999]
+weight_decay: 0.000001
+warmup_steps: 500
+gradient_clip_norm: 1.0
+precision: bf16
+checkpoint_every_epochs: 50
+checkpoint_every_steps: 1000
+checkpoint_first_step: 100
+preflight_steps: 100
+preflight_window: 20
+min_samples_per_second: 150
+max_data_wait_fraction: 0.4

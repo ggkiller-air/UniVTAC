@@ -1,0 +1,10 @@
+torch==2.4.1
+torchvision==0.19.1
+diffusers==0.11.1
+transformers==4.42.3
+huggingface-hub==0.25.0
+einops==0.4.1
+h5py==3.11.0
+numpy==1.23.3
+opencv-python==4.10.0.84
+PyYAML==6.0.3

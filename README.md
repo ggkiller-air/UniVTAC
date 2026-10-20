@@ -37,6 +37,8 @@ use `bash scripts/install.sh --policy-only` and `source scripts/env.sh`. See
 ACT training, validation, and the distinction between offline training and simulation evaluation.
 The [ACT HyperNet integration](./docs/ACTHyperNet.md) preserves author ACT settings,
 pretrained weights, and task-specific camera views while adding joint-condition modulation.
+The [full-sensor multi-task diffusion policy](./docs/MultitaskDP.md) adds independent
+camera/tactile encoders, sensor-masking training, and resumable single-GPU training.
 
 ## Task Gallery
 
