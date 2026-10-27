@@ -1,0 +1,9 @@
+# E400 K64 labels verified complete; immutable launch configs add an external archive path.
+teacher: /data/wangzihao/experiments/univtac/full_sensor_dp_batch64_ep600_seed42_20261019_093221/checkpoints/epoch0400.ckpt
+cache: /data/wangzihao/datasets/univtac/cache/full_sensor_joint_next_bgr_u8_v1
+labels: /data/wangzihao/experiments/univtac/utility_e400_ema_k64_20261026_2225/labels
+seed: 42
+batch_size: 32
+num_epochs: 600
+num_workers: 6
+memory_floor: 0.16

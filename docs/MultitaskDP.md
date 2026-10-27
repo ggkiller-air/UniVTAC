@@ -123,3 +123,10 @@ python scripts/check_multitask_dp.py --output /data/wangzihao/experiments/univta
 Optionally add `--reference-source <pinned_diffusion_policy_checkout>` for an
 exact U-Net state-dict/forward comparison. Use a new output directory each time.
 Actual job IDs and observed results belong in `docs/logs/`, not this protocol.
+
+## Simulation evaluation
+
+The existing UniVTAC evaluator can load `multitask_dp/deploy` through the policy
+adapter. See [Multi-task DP Evaluation](./MultitaskDPEvaluation.md) for installing
+the ModelScope deployment overlay and selecting checkpoints on a rendering-capable
+evaluation server. No simulator evaluation is launched on the training node.

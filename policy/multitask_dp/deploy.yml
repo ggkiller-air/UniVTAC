@@ -1,0 +1,8 @@
+policy_name: multitask_dp
+seed: 0
+device: cuda:0
+epoch: 600
+weights: ema
+condition: full
+instruction_type: seen
+instuction_file: null
