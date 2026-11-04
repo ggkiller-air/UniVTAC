@@ -1,0 +1,24 @@
+# Template for the selected six-task Teacher. Snapshot launchers add source_id
+# and a run-specific archive_dir before submitting scripts/l1_e300_uvip.sbatch.
+teacher: /data/wangzihao/experiments/univtac/l1_six_task_batch64_ep500_seed42_20261102_233553/train/checkpoints/epoch0300.ckpt
+cache: /data/wangzihao/datasets/univtac/cache/full_sensor_joint_next_bgr_u8_v1
+seed: 42
+batch_size: 32
+num_epochs: 600
+num_workers: 6
+memory_floor: 0.16
+timestep_seed: 20261104
+noise_seed: 20261105
+shard_size: 64
+label_batch: 8
+microbatch: 128
+encoder_variant: l1_late_language_v1
+teacher_epoch: 300
+teacher_weights: ema
+tasks:
+  - insert_hole
+  - insert_tube
+  - lift_bottle
+  - lift_can
+  - pull_out_key
+  - put_bottle_in_shelf
